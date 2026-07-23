@@ -51,24 +51,22 @@ server:
     existingSecret: prefect-basic-auth
 ```
 
-### Server Health Probes
+### Health Probes
 
-The server chart renders liveness and readiness HTTP probes when enabled. Default
-probe paths follow `server.apiBasePath`: liveness uses `/health` and readiness
-uses `/ready` under that base path.
+The server enables startup, liveness, and readiness probes by default. Their default paths follow `server.apiBasePath`. The startup and liveness probes call `/health`, which confirms that the HTTP server responds. The readiness probe calls `/ready`, which confirms that Prefect can connect to its database. These endpoints do not check Redis connectivity.
 
-Override `server.livenessProbe.path` or `server.readinessProbe.path` when a
-deployment needs Kubernetes to check a different endpoint. For example, point
-the liveness probe at `/api/ready` if you want sustained database connectivity
-failures to restart the server pod instead of only removing it from service.
+The startup probe allows the server up to five minutes to become healthy with the default settings. Kubernetes waits for it to succeed before running the liveness and readiness probes. You can tune each probe under its `config` key or disable it through `enabled`.
+
+You can also override `server.livenessProbe.path` or `server.readinessProbe.path`. For example, point the liveness probe at `/api/ready` if sustained database connectivity failures should restart the server pod instead of only removing it from service:
 
 ```yaml
 server:
+  startupProbe:
+    enabled: false
   livenessProbe:
-    enabled: true
     path: "/api/ready"
   readinessProbe:
-    enabled: true
+    enabled: false
 ```
 
 ## Background Services Configuration

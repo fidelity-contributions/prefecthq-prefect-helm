@@ -126,8 +126,23 @@ server:
       # ephemeral-storage:
 
   # ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+  startupProbe:
+    # -- enable the server startup probe
+    enabled: true
+    config:
+      # -- The number of seconds to wait before starting the first probe.
+      initialDelaySeconds: 0
+      # -- The number of seconds to wait between consecutive probes.
+      periodSeconds: 10
+      # -- The number of seconds to wait for a probe response before considering it as failed.
+      timeoutSeconds: 5
+      # -- The number of consecutive failures allowed before considering the probe as failed.
+      failureThreshold: 30
+      # -- The minimum consecutive successes required to consider the probe successful.
+      successThreshold: 1
   livenessProbe:
-    enabled: false
+    # -- enable the server liveness probe
+    enabled: true
     # -- HTTP path for the server liveness probe.
     path: "{{ .Values.server.apiBasePath }}/health"
     config:
@@ -142,7 +157,8 @@ server:
       # -- The minimum consecutive successes required to consider the probe successful.
       successThreshold: 1
   readinessProbe:
-    enabled: false
+    # -- enable the server readiness probe
+    enabled: true
     # -- HTTP path for the server readiness probe.
     path: "{{ .Values.server.apiBasePath }}/ready"
     config:

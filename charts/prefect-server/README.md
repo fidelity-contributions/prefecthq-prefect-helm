@@ -52,24 +52,22 @@ server:
     existingSecret: prefect-basic-auth
 ```
 
-### Server Health Probes
+### Health Probes
 
-The server chart renders liveness and readiness HTTP probes when enabled. Default
-probe paths follow `server.apiBasePath`: liveness uses `/health` and readiness
-uses `/ready` under that base path.
+The server enables startup, liveness, and readiness probes by default. Their default paths follow `server.apiBasePath`. The startup and liveness probes call `/health`, which confirms that the HTTP server responds. The readiness probe calls `/ready`, which confirms that Prefect can connect to its database. These endpoints do not check Redis connectivity.
 
-Override `server.livenessProbe.path` or `server.readinessProbe.path` when a
-deployment needs Kubernetes to check a different endpoint. For example, point
-the liveness probe at `/api/ready` if you want sustained database connectivity
-failures to restart the server pod instead of only removing it from service.
+The startup probe allows the server up to five minutes to become healthy with the default settings. Kubernetes waits for it to succeed before running the liveness and readiness probes. You can tune each probe under its `config` key or disable it through `enabled`.
+
+You can also override `server.livenessProbe.path` or `server.readinessProbe.path`. For example, point the liveness probe at `/api/ready` if sustained database connectivity failures should restart the server pod instead of only removing it from service:
 
 ```yaml
 server:
+  startupProbe:
+    enabled: false
   livenessProbe:
-    enabled: true
     path: "/api/ready"
   readinessProbe:
-    enabled: true
+    enabled: false
 ```
 
 ## Background Services Configuration
@@ -555,7 +553,7 @@ the HorizontalPodAutoscaler.
 | server.livenessProbe.config.periodSeconds | int | `10` | The number of seconds to wait between consecutive probes. |
 | server.livenessProbe.config.successThreshold | int | `1` | The minimum consecutive successes required to consider the probe successful. |
 | server.livenessProbe.config.timeoutSeconds | int | `5` | The number of seconds to wait for a probe response before considering it as failed. |
-| server.livenessProbe.enabled | bool | `false` |  |
+| server.livenessProbe.enabled | bool | `true` | enable the server liveness probe |
 | server.livenessProbe.path | string | `"{{ .Values.server.apiBasePath }}/health"` | HTTP path for the server liveness probe. |
 | server.loggingLevel | string | `"WARNING"` | sets PREFECT_LOGGING_SERVER_LEVEL |
 | server.nodeSelector | object | `{}` | node labels for server pods assignment |
@@ -571,12 +569,18 @@ the HorizontalPodAutoscaler.
 | server.readinessProbe.config.periodSeconds | int | `10` | The number of seconds to wait between consecutive probes. |
 | server.readinessProbe.config.successThreshold | int | `1` | The minimum consecutive successes required to consider the probe successful. |
 | server.readinessProbe.config.timeoutSeconds | int | `5` | The number of seconds to wait for a probe response before considering it as failed. |
-| server.readinessProbe.enabled | bool | `false` |  |
+| server.readinessProbe.enabled | bool | `true` | enable the server readiness probe |
 | server.readinessProbe.path | string | `"{{ .Values.server.apiBasePath }}/ready"` | HTTP path for the server readiness probe. |
 | server.replicaCount | int | `1` | number of server replicas to deploy, ignored if autoscaling is enabled |
 | server.resources.limits | object | `{"cpu":"1","memory":"1Gi"}` | the requested limits for the server container |
 | server.resources.requests | object | `{"cpu":"500m","memory":"512Mi"}` | the requested resources for the server container |
 | server.revisionHistoryLimit | int | `10` | the number of old ReplicaSets to retain to allow rollback |
+| server.startupProbe.config.failureThreshold | int | `30` | The number of consecutive failures allowed before considering the probe as failed. |
+| server.startupProbe.config.initialDelaySeconds | int | `0` | The number of seconds to wait before starting the first probe. |
+| server.startupProbe.config.periodSeconds | int | `10` | The number of seconds to wait between consecutive probes. |
+| server.startupProbe.config.successThreshold | int | `1` | The minimum consecutive successes required to consider the probe successful. |
+| server.startupProbe.config.timeoutSeconds | int | `5` | The number of seconds to wait for a probe response before considering it as failed. |
+| server.startupProbe.enabled | bool | `true` | enable the server startup probe |
 | server.terminationGracePeriodSeconds | string | `nil` | duration in seconds the server pod needs to terminate gracefully. Increase if Prefect needs more time to drain in-flight requests or close connections to backing services (e.g. Redis, Postgres) before SIGKILL. Leave null to use Kubernetes' default (30s). |
 | server.tolerations | list | `[]` | tolerations for server pods assignment |
 | server.uiConfig.prefectUiApiUrl | string | `"http://localhost:4200/api"` | sets PREFECT_UI_API_URL; If you want to connect to the UI from somewhere external to the cluster (i.e. via an ingress), you need to set this value to the ingress URL (e.g. http://app.internal.prefect.com/api). You can find additional documentation on this here - https://docs.prefect.io/v3/manage/self-host#ui |
